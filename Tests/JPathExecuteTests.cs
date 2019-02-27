@@ -91,8 +91,6 @@ namespace JsonPath.Tests
 
 			var jObj = MiniJSON.jsonDecode(statusJson);
 
-
-
 			var aa = new JPath("$..[?(@.usingmem>10)]").Evaluate(jObj,jObj,false);//found,10
 			Assert.AreEqual(jObj,aa.FirstOrDefault());
 
@@ -105,6 +103,7 @@ namespace JsonPath.Tests
 			var dd = new JPath("$..[?(@.usingmem>21438)]").Evaluate(jObj,jObj,false);//null,21,438
 			Assert.AreEqual(jObj,dd.FirstOrDefault());
 		}
+		
 		[Test]
 		public void GreaterThanWithIntegerParameterAndStringValue()
 		{
@@ -1125,7 +1124,7 @@ namespace JsonPath.Tests
 		public void WildcardWithProperty()
 		{
 			var o = MiniJSON.jsonDecode(@"{
-    ""station"": 92000041000001, 
+    ""station"": 92000041000001,
     ""containers"": [
         {
             ""id"": 1,
@@ -1142,13 +1141,13 @@ namespace JsonPath.Tests
                 {
                     ""id"": ""92000020100005"",
                     ""text"": ""Yard 13""
-                } 
+                }
             ]
-        }, 
+        },
         {
             ""id"": ""92000020100011"",
             ""text"": ""TSP-1""
-        }, 
+        },
         {
             ""id"":""92000020100007"",
             ""text"": ""Passenger 15""
