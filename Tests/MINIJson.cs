@@ -1,8 +1,9 @@
 using System;
-using System.Collections;
 using System.Text;
-using System.Collections.Generic;
 using System.Globalization;
+
+using System.Collections;
+using System.Collections.Generic;
 
 /* Based on the JSON parser from
  * http://techblog.procurios.nl/k/618/news/view/14605/14863/How-do-I-write-my-own-parser-for-JSON.html
@@ -21,7 +22,7 @@ namespace JsonPath.Tests
 {
 	public static class Ext
 	{
-		static IEnumerable<((bool exist,object value) left,(bool exist,object value) right)> ZipForObjects(this IEnumerable lefts,IEnumerable rights)
+		public static IEnumerable<((bool exist,object value) left,(bool exist,object value) right)> ZipForObjects(this IEnumerable lefts,IEnumerable rights)
 		{
 			var liter	= lefts?.GetEnumerator();
 			var riter	= rights?.GetEnumerator();

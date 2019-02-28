@@ -24,17 +24,14 @@
 #endregion
 
 using System;
-using System.Text;
 using System.Linq;
+using System.Numerics;
 using System.Collections;
 using System.Collections.Generic;
-
-using JsonPath;
 
 using NUnit.Framework;
 
 using JObject = System.Collections.Specialized.OrderedDictionary;
-using System.Numerics;
 
 namespace JsonPath.Tests
 {
