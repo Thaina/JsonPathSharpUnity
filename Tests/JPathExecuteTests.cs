@@ -38,7 +38,7 @@ using System.Numerics;
 
 namespace JsonPath.Tests
 {
-	public static class JToken
+	public class JPathExecuteTests
 	{
 		public static bool DeepEquals(object left,object right)
 		{
@@ -67,23 +67,6 @@ namespace JsonPath.Tests
 			return false;
 		}
 
-		static IEnumerable<((bool exist,object value) left,(bool exist,object value) right)> ZipForObjects(this IEnumerable lefts,IEnumerable rights)
-		{
-			var liter	= lefts?.GetEnumerator();
-			var riter	= rights?.GetEnumerator();
-			while(true)
-			{
-				var (lNext,rNext)	= (liter?.MoveNext() ?? false,riter?.MoveNext() ?? false);
-				if(!lNext && !rNext)
-					break;
-
-				yield return ((lNext,lNext ? liter?.Current : null),(rNext,rNext ? riter?.Current : null));
-			}
-		}
-	}
-
-	public class JPathExecuteTests
-	{
 		[Test]
 		public void GreaterThanIssue1518()
 		{
@@ -809,10 +792,10 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("$..*").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(5,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(a,t[0]));
-			Assert.IsTrue(JToken.DeepEquals(o1,t[1]));
+			Assert.IsTrue(DeepEquals(a,t[0]));
+			Assert.IsTrue(DeepEquals(o1,t[1]));
 			Assert.AreEqual(1,(int)t[2]);
-			Assert.IsTrue(JToken.DeepEquals(o2,t[3]));
+			Assert.IsTrue(DeepEquals(o2,t[3]));
 			Assert.AreEqual(2,(int)t[4]);
 		}
 
@@ -829,8 +812,8 @@ namespace JsonPath.Tests
 			Assert.AreEqual(4,t.Count);
 			Assert.AreEqual(1,(int)t[0]);
 			Assert.AreEqual(2,(int)t[1]);
-			Assert.IsTrue(JToken.DeepEquals(new JObject { ["Name"] = new[] { 3 } },t[2]));
-			Assert.IsTrue(JToken.DeepEquals(new[] { 3 },t[3]));
+			Assert.IsTrue(DeepEquals(new JObject { ["Name"] = new[] { 3 } },t[2]));
+			Assert.IsTrue(DeepEquals(new[] { 3 },t[3]));
 		}
 
 		[Test]
@@ -845,14 +828,14 @@ namespace JsonPath.Tests
 			Assert.IsNotNull(t);
 			Assert.AreEqual(9,t.Count);
 
-			Assert.IsTrue(JToken.DeepEquals(a,t[0]));
-			Assert.IsTrue(JToken.DeepEquals(o1,t[1]));
+			Assert.IsTrue(DeepEquals(a,t[0]));
+			Assert.IsTrue(DeepEquals(o1,t[1]));
 			Assert.AreEqual(1,(int)t[2]);
-			Assert.IsTrue(JToken.DeepEquals(o2,t[3]));
+			Assert.IsTrue(DeepEquals(o2,t[3]));
 			Assert.AreEqual(2,(int)t[4]);
-			Assert.IsTrue(JToken.DeepEquals(o3,t[5]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject { ["Name"] = new[] { 3 } },t[6]));
-			Assert.IsTrue(JToken.DeepEquals(new[] { 3 },t[7]));
+			Assert.IsTrue(DeepEquals(o3,t[5]));
+			Assert.IsTrue(DeepEquals(new JObject { ["Name"] = new[] { 3 } },t[6]));
+			Assert.IsTrue(DeepEquals(new[] { 3 },t[7]));
 			Assert.AreEqual(3,(int)t[8]);
 		}
 
@@ -889,7 +872,7 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( @.hi ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(1,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = "ho" },t[0]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = "ho" },t[0]));
 		}
 
 		[Test]
@@ -903,7 +886,7 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( @.['hi'] == 'ha' ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(1,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = "ha" },t[0]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = "ha" },t[0]));
 		}
 
 		[Test]
@@ -917,7 +900,7 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( @..hi <> 'ha' ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(1,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new[] { new JObject() { ["hi"] = "ho" } },t[0]));
+			Assert.IsTrue(DeepEquals(new[] { new JObject() { ["hi"] = "ho" } },t[0]));
 		}
 
 		[Test]
@@ -957,8 +940,8 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( @.hi > 1 ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(2,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 2 },t[0]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 3 },t[1]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 2 },t[0]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 3 },t[1]));
 		}
 
 		[Test]
@@ -973,8 +956,8 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( 1 < @.hi ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(2,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 2 },t[0]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 3 },t[1]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 2 },t[0]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 3 },t[1]));
 		}
 
 #if !(PORTABLE || DNXCORE50 || PORTABLE40 || NET35 || NET20) || NETSTANDARD1_3 || NETSTANDARD2_0
@@ -990,8 +973,8 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( @.hi > 1 ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(2,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 2 },t[0]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 3 },t[1]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 2 },t[0]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 3 },t[1]));
 		}
 #endif
 
@@ -1008,10 +991,10 @@ namespace JsonPath.Tests
 			var t = a.SelectTokens("[ ?( @.hi >= 1 ) ]").ToList();
 			Assert.IsNotNull(t);
 			Assert.AreEqual(4,t.Count);
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 1 },t[0]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 2 },t[1]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 2.0 },t[2]));
-			Assert.IsTrue(JToken.DeepEquals(new JObject() { ["hi"] = 3 },t[3]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 1 },t[0]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 2 },t[1]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 2.0 },t[2]));
+			Assert.IsTrue(DeepEquals(new JObject() { ["hi"] = 3 },t[3]));
 		}
 
 		[Test]

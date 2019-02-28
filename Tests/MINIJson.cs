@@ -19,6 +19,23 @@ using System.Globalization;
 /// </summary>
 namespace JsonPath.Tests
 {
+	public static class Ext
+	{
+		static IEnumerable<((bool exist,object value) left,(bool exist,object value) right)> ZipForObjects(this IEnumerable lefts,IEnumerable rights)
+		{
+			var liter	= lefts?.GetEnumerator();
+			var riter	= rights?.GetEnumerator();
+			while(true)
+			{
+				var (lNext,rNext)	= (liter?.MoveNext() ?? false,riter?.MoveNext() ?? false);
+				if(!lNext && !rNext)
+					break;
+
+				yield return ((lNext,lNext ? liter?.Current : null),(rNext,rNext ? riter?.Current : null));
+			}
+		}
+	}
+
 	public class MiniJSON
 	{
 		private const int TOKEN_NONE = 0;
