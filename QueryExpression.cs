@@ -25,7 +25,70 @@ namespace JsonPath
 		StrictNotEquals = 12
 	}
 
-	public abstract class QueryExpression
+	public abstract class JsonExpression
+	{
+
+		public static int JsonTypeCode(object obj)
+		{
+			switch(obj)
+			{
+				case null:
+					return 0;
+				case bool b:
+					return 1;
+				case string s:
+				case IEnumerable<char> c:
+					return 3;
+				default:
+				case IDictionary d:
+					return 5;
+				case IEnumerable e:
+					return 4;
+				case IConvertible c:
+					return 2;
+			}
+		}
+		
+		public static int JsonCompareString(IEnumerable<char> left,IEnumerable<char> right)
+		{
+			if(!(left is string l))
+				l	= new string(left.ToArray());
+			if(!(right is string r))
+				r	= new string(right.ToArray());
+
+			return l.CompareTo(r);
+		}
+
+		public static int JsonCompare(object left,object right)
+		{
+			var diffType	= JsonTypeCode(left) - JsonTypeCode(right);
+			if(diffType != 0)
+				return diffType;
+
+			if(left == right)
+				return 0;
+
+			if(left is bool bl && right is bool br)
+				return (bl ? 1 : 0) - (br ? 1 : 0);
+				
+			if(left is IEnumerable<char> sl && right is IEnumerable<char> sr)
+				return JsonCompareString(sl,sr);
+				
+			if(left is IConvertible cl && right is IConvertible cr)
+				return Math.Sign(cl.ToDecimal(null) - cr.ToDecimal(null));
+				
+			if(left is IDictionary dl && right is IDictionary dr)
+				return dl.OfType<DictionaryEntry>().Join(dr.OfType<DictionaryEntry>(),(outer) => outer.Key,(inner) => inner.Key,(outer,inner) => (key: outer.Key,value: JsonCompare(outer,inner))).Where((pair) => pair.value != 0).OrderBy((pair) => pair.key).Select((pair) => pair.value).FirstOrDefault();
+
+			if(left is IEnumerable el && right is IEnumerable er)
+				return el.OfType<object>().Zip(er.OfType<object>(),(outer,inner) => JsonCompare(outer,inner)).FirstOrDefault((value) => value != 0);
+
+			return 0;
+		}
+	}
+
+
+	public abstract class QueryExpression : JsonExpression
 	{
 		public QueryOperator Operator { get; set; }
 
@@ -160,64 +223,6 @@ namespace JsonPath
 
 		}
 		
-		private static int JsonTypeCode(object obj)
-		{
-			switch(obj)
-			{
-				case null:
-					return 0;
-				case bool b:
-					return 1;
-				case string s:
-				case IEnumerable<char> c:
-					return 3;
-				default:
-				case IDictionary d:
-					return 5;
-				case IEnumerable e:
-					return 4;
-				case IConvertible c:
-					return 2;
-			}
-		}
-		
-		private static int JsonCompareString(IEnumerable<char> left,IEnumerable<char> right)
-		{
-			if(!(left is string l))
-				l	= new string(left.ToArray());
-			if(!(right is string r))
-				r	= new string(right.ToArray());
-
-			return l.CompareTo(r);
-		}
-
-		private static int JsonCompare(object left,object right)
-		{
-			var diffType	= JsonTypeCode(left) - JsonTypeCode(right);
-			if(diffType != 0)
-				return diffType;
-
-			if(left == right)
-				return 0;
-
-			if(left is bool bl && right is bool br)
-				return (bl ? 1 : 0) - (br ? 1 : 0);
-				
-			if(left is IEnumerable<char> sl && right is IEnumerable<char> sr)
-				return JsonCompareString(sl,sr);
-				
-			if(left is IConvertible cl && right is IConvertible cr)
-				return Math.Sign(cl.ToDecimal(null) - cr.ToDecimal(null));
-				
-			if(left is IDictionary dl && right is IDictionary dr)
-				return dl.OfType<DictionaryEntry>().Join(dr.OfType<DictionaryEntry>(),(outer) => outer.Key,(inner) => inner.Key,(outer,inner) => (key: outer.Key,value: JsonCompare(outer,inner))).Where((pair) => pair.value != 0).OrderBy((pair) => pair.key).Select((pair) => pair.value).FirstOrDefault();
-
-			if(left is IEnumerable el && right is IEnumerable er)
-				return el.OfType<object>().Zip(er.OfType<object>(),(outer,inner) => JsonCompare(outer,inner)).FirstOrDefault((value) => value != 0);
-
-			return 0;
-		}
-
 		private static bool RegexEquals(object input,object pattern)
 		{
 			if(!(input is string value && pattern is string regexText))
