@@ -1047,6 +1047,31 @@ namespace JsonPath.Tests
 		}
 
 		[Test]
+		public void FunctionPaths()
+		{
+			var a = MiniJSON.jsonDecode(@"[
+  {
+    ""price"": 0.1,
+    ""max_price"": 200
+  },
+  {
+    ""price"": 200,
+    ""max_price"": 200
+  },
+  {
+    ""price"": 0.05,
+    ""max_price"": 200
+  }
+]") as IList;
+
+			Assert.IsInstanceOf<IList>(a);
+
+			var results = a.SelectTokens("$..price.inverse()").ToList();
+			Assert.That(results,Has.Count.EqualTo(3));
+			CollectionAssert.AreEqual(new[]{10,1 / 200.0,20},results);
+		}
+
+		[Test]
 		public void Exists_True()
 		{
 			var a = MiniJSON.jsonDecode(@"[

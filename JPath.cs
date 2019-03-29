@@ -105,8 +105,30 @@ namespace JsonPath
 
 				switch(currentChar)
 				{
-					case '[':
 					case '(':
+						if(_currentIndex > currentPartStartIndex)
+						{
+							string member = _expression.Substring(currentPartStartIndex, _currentIndex - currentPartStartIndex);
+							filters.Add(new FunctionFilter() { Name = member });
+							scan = false;
+						}
+
+						_currentIndex++;
+						if(_expression[_currentIndex] != ')')
+							throw new Exception("Unexpected character following indexer: " + _expression[_currentIndex]);
+
+						if(_currentIndex + 1 < _expression.Length && _expression[_currentIndex + 1] == '.')
+						{
+							scan = true;
+							_currentIndex++;
+						}
+
+						_currentIndex++;
+						currentPartStartIndex = _currentIndex;
+						followingIndexer = false;
+						followingDot = false;
+						break;
+					case '[':
 						if(_currentIndex > currentPartStartIndex)
 						{
 							string member = _expression.Substring(currentPartStartIndex, _currentIndex - currentPartStartIndex);
@@ -119,7 +141,7 @@ namespace JsonPath
 							scan = false;
 						}
 
-						filters.Add(ParseIndexer(currentChar,scan));
+						filters.Add(ParseIndexer(scan));
 						_currentIndex++;
 						currentPartStartIndex = _currentIndex;
 						followingIndexer = true;
@@ -147,6 +169,7 @@ namespace JsonPath
 							filters.Add(CreatePathFilter(member,scan));
 							scan = false;
 						}
+
 						if(_currentIndex + 1 < _expression.Length && _expression[_currentIndex + 1] == '.')
 						{
 							scan = true;
@@ -203,11 +226,9 @@ namespace JsonPath
 			return new FieldFilter { Scan = scan,Name = member};
 		}
 
-		private PathFilter ParseIndexer(char indexerOpenChar,bool scan)
+		private PathFilter ParseIndexer(bool scan)
 		{
 			_currentIndex++;
-
-			char indexerCloseChar = (indexerOpenChar == '[') ? ']' : ')';
 
 			EnsureLength("Path ended with open indexer.");
 
@@ -215,19 +236,19 @@ namespace JsonPath
 
 			if(_expression[_currentIndex] == '\'')
 			{
-				return ParseQuotedField(indexerCloseChar,scan);
+				return ParseQuotedField(scan);
 			}
 			else if(_expression[_currentIndex] == '?')
 			{
-				return ParseQuery(indexerCloseChar,scan);
+				return ParseQuery(scan);
 			}
 			else
 			{
-				return ParseArrayIndexer(indexerCloseChar);
+				return ParseArrayIndexer();
 			}
 		}
 
-		private PathFilter ParseArrayIndexer(char indexerCloseChar)
+		private PathFilter ParseArrayIndexer()
 		{
 			int start = _currentIndex;
 			int? end = null;
@@ -248,7 +269,7 @@ namespace JsonPath
 					continue;
 				}
 
-				if(currentCharacter == indexerCloseChar)
+				if(currentCharacter == ']')
 				{
 					int length = (end ?? _currentIndex) - start;
 
@@ -327,7 +348,7 @@ namespace JsonPath
 					EnsureLength("Path ended with open indexer.");
 					EatWhitespace();
 
-					if(_expression[_currentIndex] != indexerCloseChar)
+					if(_expression[_currentIndex] != ']')
 					{
 						throw new Exception("Unexpected character while parsing path indexer: " + currentCharacter);
 					}
@@ -366,17 +387,12 @@ namespace JsonPath
 					start = _currentIndex;
 					end = null;
 				}
-				else if(!char.IsDigit(currentCharacter) && currentCharacter != '-')
+				else if((!char.IsDigit(currentCharacter) && currentCharacter != '-') || end != null)
 				{
 					throw new Exception("Unexpected character while parsing path indexer: " + currentCharacter);
 				}
 				else
 				{
-					if(end != null)
-					{
-						throw new Exception("Unexpected character while parsing path indexer: " + currentCharacter);
-					}
-
 					_currentIndex++;
 				}
 			}
@@ -397,7 +413,7 @@ namespace JsonPath
 			}
 		}
 
-		private PathFilter ParseQuery(char indexerCloseChar,bool scan)
+		private PathFilter ParseQuery(bool scan)
 		{
 			_currentIndex++;
 			EnsureLength("Path ended with open indexer.");
@@ -411,11 +427,16 @@ namespace JsonPath
 
 			QueryExpression expression = ParseExpression();
 
+			if(_expression[_currentIndex] != ')')
+			{
+				throw new Exception("Unexpected character while parsing path indexer: " + _expression[_currentIndex]);
+			}
+
 			_currentIndex++;
 			EnsureLength("Path ended with open indexer.");
 			EatWhitespace();
 
-			if(_expression[_currentIndex] != indexerCloseChar)
+			if(_expression[_currentIndex] != ']')
 			{
 				throw new Exception("Unexpected character while parsing path indexer: " + _expression[_currentIndex]);
 			}
@@ -809,7 +830,7 @@ namespace JsonPath
 			throw new Exception("Could not read query operator.");
 		}
 
-		private PathFilter ParseQuotedField(char indexerCloseChar,bool scan)
+		private PathFilter ParseQuotedField(bool scan)
 		{
 			List<string> fields = null;
 
@@ -819,31 +840,25 @@ namespace JsonPath
 
 				EatWhitespace();
 				EnsureLength("Path ended with open indexer.");
-
-				if(_expression[_currentIndex] == indexerCloseChar)
+				if(_expression[_currentIndex] != ']')
 				{
-					if(fields == null)
-						return CreatePathFilter(field,scan);
+					if(_expression[_currentIndex] != ',')
+						throw new Exception("Unexpected character while parsing path indexer: " + _expression[_currentIndex]);
 
-					fields.Add(field);
-					return new FieldMultipleFilter { Scan = scan,Names = fields };
-				}
-				else if(_expression[_currentIndex] == ',')
-				{
 					_currentIndex++;
 					EatWhitespace();
 
 					if(fields == null)
-					{
 						fields = new List<string>();
-					}
 
 					fields.Add(field);
 				}
-				else
+				else if(fields != null)
 				{
-					throw new Exception("Unexpected character while parsing path indexer: " + _expression[_currentIndex]);
+					fields.Add(field);
+					return new FieldMultipleFilter { Scan = scan,Names = fields };
 				}
+				else return CreatePathFilter(field,scan);
 			}
 
 			throw new Exception("Path ended with open indexer.");
@@ -852,12 +867,10 @@ namespace JsonPath
 		private void EnsureLength(string message)
 		{
 			if(_currentIndex >= _expression.Length)
-			{
 				throw new Exception(message);
-			}
 		}
 
-		public IEnumerable<object>  Evaluate(object root,object t,bool errorWhenNoMatch) => Evaluate(Filters,root,t,errorWhenNoMatch);
+		public IEnumerable<object> Evaluate(object root,object t,bool errorWhenNoMatch) => Evaluate(Filters,root,t,errorWhenNoMatch);
 		public static IEnumerable<object> Evaluate(IEnumerable<PathFilter> filters,object root,object t,bool errorWhenNoMatch)
 		{
 			IEnumerable<object> current = new[] { t };
